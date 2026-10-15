@@ -5,7 +5,6 @@
   --borda: #e3e3e3;
   --destaque: #1d7a4d;
   --destaque-fundo: #e6f4ec;
-  --linha-feita: #f7f7f7;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -16,7 +15,6 @@
     --borda: #333333;
     --destaque: #4cc387;
     --destaque-fundo: #1d3328;
-    --linha-feita: #1f1f1f;
   }
 }
 
@@ -37,7 +35,8 @@ header {
 }
 
 input,
-textarea {
+textarea,
+select {
   padding: 8px;
   border: 1px solid var(--borda);
   border-radius: 8px;
@@ -46,6 +45,7 @@ textarea {
   font: inherit;
 }
 
+.perfil,
 .topo {
   display: flex;
   flex-wrap: wrap;
@@ -53,6 +53,11 @@ textarea {
   gap: 8px;
 }
 
+.topo {
+  margin-top: 8px;
+}
+
+.perfil label,
 .topo label {
   color: var(--suave);
   font-size: 13px;
@@ -70,18 +75,19 @@ textarea {
 
 .abas {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
 }
 
 .abas button {
-  padding: 6px 12px;
+  padding: 6px 10px;
   border: 1px solid var(--borda);
   border-radius: 20px;
   background: none;
   color: var(--texto);
   font: inherit;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -92,7 +98,7 @@ textarea {
 }
 
 #contador {
-  margin-left: auto;
+  margin-top: 6px;
   color: var(--suave);
   font-size: 13px;
 }
@@ -143,9 +149,14 @@ td {
 }
 
 .nome {
-  width: 40%;
-  color: var(--suave);
+  width: 35%;
   overflow-wrap: anywhere;
+}
+
+.nome small {
+  display: block;
+  color: var(--suave);
+  font-size: 12px;
 }
 
 .numero {
@@ -159,25 +170,19 @@ td {
   color: var(--destaque);
 }
 
-.botao-celula {
+.botoes {
   width: 1%;
   text-align: right;
   white-space: nowrap;
 }
 
-tr.feito {
-  background: var(--linha-feita);
+.botoes .btn {
+  margin-left: 4px;
 }
 
-tr.feito .nome,
-tr.feito .numero {
-  opacity: 0.45;
-  text-decoration: line-through;
-}
-
-tr.feito .btn {
-  background: var(--destaque);
-  color: #fff;
+.concluido {
+  color: var(--destaque);
+  font-weight: 600;
 }
 
 #aviso {
