@@ -8,6 +8,15 @@
 </head>
 <body>
   <header>
+    <div class="perfil">
+      <label>
+        Perfil
+        <select id="selPerfil"></select>
+      </label>
+      <button id="btnNovoPerfil" class="btn">Novo</button>
+      <button id="btnExcluirPerfil" class="btn">Excluir</button>
+    </div>
+
     <div class="topo">
       <input id="busca" type="search" placeholder="Buscar nome ou número">
       <label>
@@ -17,11 +26,14 @@
     </div>
 
     <div class="abas">
-      <button class="ativa" data-filtro="pendentes">Pendentes</button>
-      <button data-filtro="ligados">Ligados</button>
+      <button class="ativa" data-filtro="0">Pendentes</button>
+      <button data-filtro="1">1ª ligação</button>
+      <button data-filtro="2">2ª ligação</button>
+      <button data-filtro="3">3ª ligação</button>
+      <button data-filtro="4">4ª ligação</button>
       <button data-filtro="todos">Todos</button>
-      <span id="contador"></span>
     </div>
+    <div id="contador"></div>
 
     <button id="btnColar" class="btn">+ Colar contatos</button>
 
@@ -30,8 +42,11 @@
       <div class="acoes">
         <button id="btnAdicionar" class="btn">Adicionar</button>
         <button id="btnOrdenar" class="btn">Ordenar A-Z</button>
+        <button id="btnExportar" class="btn">Exportar backup</button>
+        <button id="btnImportar" class="btn">Importar backup</button>
         <button id="btnApagar" class="btn">Apagar lista</button>
       </div>
+      <input id="arquivoImportar" type="file" accept=".json" hidden>
     </div>
   </header>
 
