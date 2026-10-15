@@ -1,0 +1,199 @@
+:root {
+  --fundo: #ffffff;
+  --texto: #1a1a1a;
+  --suave: #6b6b6b;
+  --borda: #e3e3e3;
+  --destaque: #1d7a4d;
+  --destaque-fundo: #e6f4ec;
+  --linha-feita: #f7f7f7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #161616;
+    --texto: #eeeeee;
+    --suave: #9a9a9a;
+    --borda: #333333;
+    --destaque: #4cc387;
+    --destaque-fundo: #1d3328;
+    --linha-feita: #1f1f1f;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font: 15px system-ui, sans-serif;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 10px 12px;
+  background: var(--fundo);
+  border-bottom: 1px solid var(--borda);
+}
+
+input,
+textarea {
+  padding: 8px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--fundo);
+  color: var(--texto);
+  font: inherit;
+}
+
+.topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.topo label {
+  color: var(--suave);
+  font-size: 13px;
+}
+
+#busca {
+  flex: 1;
+  min-width: 140px;
+}
+
+#prefixo {
+  width: 40px;
+  text-align: center;
+}
+
+.abas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.abas button {
+  padding: 6px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 20px;
+  background: none;
+  color: var(--texto);
+  font: inherit;
+  cursor: pointer;
+}
+
+.abas button.ativa {
+  background: var(--destaque);
+  border-color: var(--destaque);
+  color: #fff;
+}
+
+#contador {
+  margin-left: auto;
+  color: var(--suave);
+  font-size: 13px;
+}
+
+.btn {
+  padding: 6px 12px;
+  border: 1px solid var(--destaque);
+  border-radius: 8px;
+  background: none;
+  color: var(--destaque);
+  font: inherit;
+  cursor: pointer;
+}
+
+#btnColar {
+  margin-top: 8px;
+}
+
+#painelColar {
+  margin-top: 8px;
+}
+
+#painelColar[hidden] {
+  display: none;
+}
+
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  height: 110px;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.nome {
+  width: 40%;
+  color: var(--suave);
+  overflow-wrap: anywhere;
+}
+
+.numero {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.numero.copiado {
+  background: var(--destaque-fundo);
+  color: var(--destaque);
+}
+
+.botao-celula {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+tr.feito {
+  background: var(--linha-feita);
+}
+
+tr.feito .nome,
+tr.feito .numero {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+tr.feito .btn {
+  background: var(--destaque);
+  color: #fff;
+}
+
+#aviso {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: #222;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+#aviso.visivel {
+  opacity: 1;
+}

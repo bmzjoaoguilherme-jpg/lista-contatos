@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lista de contatos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="topo">
+      <input id="busca" type="search" placeholder="Buscar nome ou número">
+      <label>
+        Remover início
+        <input id="prefixo" value="55" size="3">
+      </label>
+    </div>
+
+    <div class="abas">
+      <button class="ativa" data-filtro="pendentes">Pendentes</button>
+      <button data-filtro="ligados">Ligados</button>
+      <button data-filtro="todos">Todos</button>
+      <span id="contador"></span>
+    </div>
+
+    <button id="btnColar" class="btn">+ Colar contatos</button>
+
+    <div id="painelColar" hidden>
+      <textarea id="areaColar" placeholder="Cole os contatos aqui, um por linha.&#10;Exemplos:&#10;Maria 11 98765-4321&#10;(11) 98765-4321 João"></textarea>
+      <div class="acoes">
+        <button id="btnAdicionar" class="btn">Adicionar</button>
+        <button id="btnOrdenar" class="btn">Ordenar A-Z</button>
+        <button id="btnApagar" class="btn">Apagar lista</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <table>
+      <tbody id="tabela"></tbody>
+    </table>
+  </main>
+
+  <div id="aviso"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
