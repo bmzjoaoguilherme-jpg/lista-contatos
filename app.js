@@ -1,5 +1,6 @@
 const CHAVE_PERFIS = "perfis";
 const CHAVE_ATUAL = "perfilAtual";
+const SUFIXO_EXCLUIDOS = ":excluidos";
 
 // posição 0 = ainda não ligou, 1 = já fez a 1ª ligação, e assim por diante
 const ROTULOS = ["Pendentes", "1ª ligação", "2ª ligação", "3ª ligação", "4ª ligação"];
@@ -8,6 +9,7 @@ const ULTIMA_ETAPA = ROTULOS.length - 1;
 let perfis = carregar(CHAVE_PERFIS, []);
 let perfilAtual = carregar(CHAVE_ATUAL, "");
 let contatos = [];
+let excluidos = [];
 let filtro = "0";
 
 const $ = (id) => document.getElementById(id);
@@ -38,6 +40,7 @@ function chaveDados(nome) {
 
 function salvar() {
   guardar(chaveDados(perfilAtual), contatos);
+  guardar(chaveDados(perfilAtual) + SUFIXO_EXCLUIDOS, excluidos);
 }
 
 // ---------- perfis ----------
@@ -58,6 +61,7 @@ function abrirPerfil(nome) {
   perfilAtual = nome;
   guardar(CHAVE_ATUAL, perfilAtual);
   contatos = carregar(chaveDados(perfilAtual), []);
+  excluidos = carregar(chaveDados(perfilAtual) + SUFIXO_EXCLUIDOS, []);
   preencherPerfis();
   mudarFiltro("0");
 }
@@ -93,6 +97,7 @@ function excluirPerfil() {
 
   try {
     localStorage.removeItem(chaveDados(perfilAtual));
+    localStorage.removeItem(chaveDados(perfilAtual) + SUFIXO_EXCLUIDOS);
   } catch (erro) {
     // ignora
   }
@@ -173,6 +178,32 @@ function formatarData(timestamp) {
   });
 }
 
+function excluirContato(contato) {
+  if (!confirm(`Mover "${contato.nome}" para Excluídos?`)) return;
+  contatos = contatos.filter((c) => c !== contato);
+  excluidos.unshift({ ...contato, excluidoEm: Date.now() });
+  salvar();
+  desenhar();
+  avisar("Contato movido para Excluídos");
+}
+
+function restaurarContato(contato) {
+  excluidos = excluidos.filter((c) => c !== contato);
+  const { excluidoEm, ...restaurado } = contato;
+  contatos.unshift(restaurado);
+  salvar();
+  desenhar();
+  avisar("Contato restaurado");
+}
+
+function excluirPermanentemente(contato) {
+  if (!confirm(`Excluir "${contato.nome}" permanentemente? Esta ação não pode ser desfeita.`)) return;
+  excluidos = excluidos.filter((c) => c !== contato);
+  salvar();
+  desenhar();
+  avisar("Contato excluído permanentemente");
+}
+
 // ---------- tela ----------
 
 function atualizarAbas() {
@@ -180,6 +211,8 @@ function atualizarAbas() {
     const f = botao.dataset.filtro;
     if (f === "todos") {
       botao.textContent = `Todos (${contatos.length})`;
+    } else if (f === "excluidos") {
+      botao.textContent = `Excluídos (${excluidos.length})`;
     } else {
       const quantos = contatos.filter((c) => c.etapa === Number(f)).length;
       botao.textContent = `${ROTULOS[f]} (${quantos})`;
@@ -192,13 +225,14 @@ function desenhar() {
   const tabela = $("tabela");
   tabela.innerHTML = "";
   let mostrados = 0;
+  const vendoExcluidos = filtro === "excluidos";
+  const lista = vendoExcluidos ? excluidos : contatos;
 
-  contatos.forEach((contato) => {
-    if (filtro !== "todos" && String(contato.etapa) !== filtro) return;
+  lista.forEach((contato) => {
+    if (!vendoExcluidos && filtro !== "todos" && String(contato.etapa) !== filtro) return;
     if (busca && !contato.nome.toLowerCase().includes(busca) && !contato.numero.includes(busca)) return;
 
     mostrados++;
-
     const linha = document.createElement("tr");
 
     const celulaNome = document.createElement("td");
@@ -209,39 +243,78 @@ function desenhar() {
       data.textContent = "Última ligação: " + formatarData(contato.ultima);
       celulaNome.appendChild(data);
     }
+    if (vendoExcluidos && contato.excluidoEm) {
+      const dataExclusao = document.createElement("small");
+      dataExclusao.textContent = "Excluído: " + formatarData(contato.excluidoEm);
+      celulaNome.appendChild(dataExclusao);
+    }
 
     const celulaNumero = document.createElement("td");
     celulaNumero.className = "numero";
-    celulaNumero.textContent = formatarNumero(contato.numero);
-    celulaNumero.addEventListener("click", () => {
+    const numero = document.createElement("span");
+    numero.className = "numero-texto";
+    numero.textContent = formatarNumero(contato.numero);
+    numero.title = "Clique para copiar o número";
+    numero.addEventListener("click", () => {
       copiar(formatarNumero(contato.numero));
-      celulaNumero.classList.add("copiado");
-      setTimeout(() => celulaNumero.classList.remove("copiado"), 500);
+      numero.classList.add("copiado");
+      setTimeout(() => numero.classList.remove("copiado"), 500);
     });
+    celulaNumero.appendChild(numero);
+
+    if (!vendoExcluidos) {
+      const lixeira = document.createElement("button");
+      lixeira.className = "btn btn-lixeira";
+      lixeira.type = "button";
+      lixeira.textContent = "🗑";
+      lixeira.title = "Mover para Excluídos";
+      lixeira.setAttribute("aria-label", `Mover ${contato.nome} para Excluídos`);
+      lixeira.addEventListener("click", (evento) => {
+        evento.stopPropagation();
+        excluirContato(contato);
+      });
+      celulaNumero.appendChild(lixeira);
+    }
 
     const celulaBotoes = document.createElement("td");
     celulaBotoes.className = "botoes";
 
-    if (contato.etapa < ULTIMA_ETAPA) {
-      const avancar = document.createElement("button");
-      avancar.className = "btn";
-      avancar.textContent = `Liguei (${contato.etapa + 1}ª)`;
-      avancar.addEventListener("click", () => registrarLigacao(contato));
-      celulaBotoes.appendChild(avancar);
-    } else {
-      const fim = document.createElement("span");
-      fim.className = "concluido";
-      fim.textContent = "4 ligações feitas";
-      celulaBotoes.appendChild(fim);
-    }
+    if (vendoExcluidos) {
+      const restaurar = document.createElement("button");
+      restaurar.className = "btn";
+      restaurar.textContent = "↩ Restaurar";
+      restaurar.title = "Restaurar contato";
+      restaurar.addEventListener("click", () => restaurarContato(contato));
+      celulaBotoes.appendChild(restaurar);
 
-    if (contato.etapa > 0) {
-      const voltar = document.createElement("button");
-      voltar.className = "btn";
-      voltar.textContent = "↩";
-      voltar.title = "Voltar uma etapa";
-      voltar.addEventListener("click", () => voltarEtapa(contato));
-      celulaBotoes.appendChild(voltar);
+      const apagar = document.createElement("button");
+      apagar.className = "btn btn-apagar-definitivo";
+      apagar.textContent = "Excluir de vez";
+      apagar.title = "Excluir permanentemente";
+      apagar.addEventListener("click", () => excluirPermanentemente(contato));
+      celulaBotoes.appendChild(apagar);
+    } else {
+      if (contato.etapa < ULTIMA_ETAPA) {
+        const avancar = document.createElement("button");
+        avancar.className = "btn";
+        avancar.textContent = `Liguei (${contato.etapa + 1}ª)`;
+        avancar.addEventListener("click", () => registrarLigacao(contato));
+        celulaBotoes.appendChild(avancar);
+      } else {
+        const fim = document.createElement("span");
+        fim.className = "concluido";
+        fim.textContent = "4 ligações feitas";
+        celulaBotoes.appendChild(fim);
+      }
+
+      if (contato.etapa > 0) {
+        const voltar = document.createElement("button");
+        voltar.className = "btn";
+        voltar.textContent = "↩";
+        voltar.title = "Voltar uma etapa";
+        voltar.addEventListener("click", () => voltarEtapa(contato));
+        celulaBotoes.appendChild(voltar);
+      }
     }
 
     linha.append(celulaNome, celulaNumero, celulaBotoes);
@@ -249,7 +322,9 @@ function desenhar() {
   });
 
   atualizarAbas();
-  $("contador").textContent = `${contatos.length} contatos · ${mostrados} nesta aba`;
+  $("contador").textContent = vendoExcluidos
+    ? `${excluidos.length} contatos excluídos · ${mostrados} nesta lista`
+    : `${contatos.length} contatos · ${mostrados} nesta aba`;
 }
 
 function mudarFiltro(novoFiltro) {
@@ -356,7 +431,7 @@ function adicionarContatos() {
 // ---------- backup ----------
 
 function exportar() {
-  const dados = JSON.stringify({ perfil: perfilAtual, contatos }, null, 2);
+  const dados = JSON.stringify({ perfil: perfilAtual, contatos, excluidos }, null, 2);
   const arquivo = new Blob([dados], { type: "application/json" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(arquivo);
@@ -380,10 +455,15 @@ async function importar(arquivo) {
     const dados = JSON.parse(await arquivo.text());
     const lista = (Array.isArray(dados) ? dados : dados.contatos).map(normalizar);
     const validos = lista.filter((c) => c.numero.length >= 10);
+    const listaExcluidos = Array.isArray(dados) ? [] : (dados.excluidos || []).map((item) => ({
+      ...normalizar(item),
+      excluidoEm: item.excluidoEm || Date.now()
+    })).filter((c) => c.numero.length >= 10);
 
     if (!confirm(`Substituir a lista do perfil "${perfilAtual}" por ${validos.length} contatos do arquivo?`)) return;
 
     contatos = validos;
+    excluidos = listaExcluidos;
     salvar();
     mudarFiltro("0");
     avisar("Backup importado");
