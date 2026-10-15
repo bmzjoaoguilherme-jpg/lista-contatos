@@ -1,11 +1,18 @@
-const CHAVE_CONTATOS = "contatos";
-const CHAVE_LIGADOS = "ligados";
+const CHAVE_PERFIS = "perfis";
+const CHAVE_ATUAL = "perfilAtual";
 
-let contatos = carregar(CHAVE_CONTATOS, []);
-let ligados = carregar(CHAVE_LIGADOS, {});
-let filtro = "pendentes";
+// posição 0 = ainda não ligou, 1 = já fez a 1ª ligação, e assim por diante
+const ROTULOS = ["Pendentes", "1ª ligação", "2ª ligação", "3ª ligação", "4ª ligação"];
+const ULTIMA_ETAPA = ROTULOS.length - 1;
+
+let perfis = carregar(CHAVE_PERFIS, []);
+let perfilAtual = carregar(CHAVE_ATUAL, "");
+let contatos = [];
+let filtro = "0";
 
 const $ = (id) => document.getElementById(id);
+
+// ---------- armazenamento ----------
 
 function carregar(chave, padrao) {
   try {
@@ -16,14 +23,85 @@ function carregar(chave, padrao) {
   }
 }
 
-function salvar() {
+function guardar(chave, valor) {
   try {
-    localStorage.setItem(CHAVE_CONTATOS, JSON.stringify(contatos));
-    localStorage.setItem(CHAVE_LIGADOS, JSON.stringify(ligados));
+    localStorage.setItem(chave, JSON.stringify(valor));
   } catch (erro) {
     // sem localStorage (modo privado, por exemplo), segue sem salvar
   }
 }
+
+// cada perfil tem a sua própria lista guardada
+function chaveDados(nome) {
+  return "dados:" + nome;
+}
+
+function salvar() {
+  guardar(chaveDados(perfilAtual), contatos);
+}
+
+// ---------- perfis ----------
+
+function preencherPerfis() {
+  const select = $("selPerfil");
+  select.innerHTML = "";
+  perfis.forEach((nome) => {
+    const opcao = document.createElement("option");
+    opcao.value = nome;
+    opcao.textContent = nome;
+    select.appendChild(opcao);
+  });
+  select.value = perfilAtual;
+}
+
+function abrirPerfil(nome) {
+  perfilAtual = nome;
+  guardar(CHAVE_ATUAL, perfilAtual);
+  contatos = carregar(chaveDados(perfilAtual), []);
+  preencherPerfis();
+  mudarFiltro("0");
+}
+
+function iniciarPerfis() {
+  if (!perfis.length) {
+    const nome = (prompt("Qual é o seu nome?") || "").trim() || "Meu perfil";
+    perfis = [nome];
+    guardar(CHAVE_PERFIS, perfis);
+    perfilAtual = nome;
+  }
+  if (!perfis.includes(perfilAtual)) perfilAtual = perfis[0];
+  abrirPerfil(perfilAtual);
+}
+
+function novoPerfil() {
+  const nome = (prompt("Nome do novo perfil:") || "").trim();
+  if (!nome) return;
+
+  if (!perfis.includes(nome)) {
+    perfis.push(nome);
+    guardar(CHAVE_PERFIS, perfis);
+  }
+  abrirPerfil(nome);
+}
+
+function excluirPerfil() {
+  if (perfis.length === 1) {
+    avisar("Precisa existir pelo menos um perfil");
+    return;
+  }
+  if (!confirm(`Apagar o perfil "${perfilAtual}" e todos os contatos dele?`)) return;
+
+  try {
+    localStorage.removeItem(chaveDados(perfilAtual));
+  } catch (erro) {
+    // ignora
+  }
+  perfis = perfis.filter((nome) => nome !== perfilAtual);
+  guardar(CHAVE_PERFIS, perfis);
+  abrirPerfil(perfis[0]);
+}
+
+// ---------- avisos e cópia ----------
 
 function avisar(mensagem, tempo = 1500) {
   const aviso = $("aviso");
@@ -66,6 +144,49 @@ function formatarNumero(numero) {
   return numero;
 }
 
+// ---------- ligações ----------
+
+function registrarLigacao(contato) {
+  if (contato.etapa >= ULTIMA_ETAPA) return;
+  contato.etapa++;
+  contato.ultima = Date.now();
+  salvar();
+  desenhar();
+  avisar("Movido para " + ROTULOS[contato.etapa]);
+}
+
+function voltarEtapa(contato) {
+  if (contato.etapa <= 0) return;
+  contato.etapa--;
+  if (contato.etapa === 0) contato.ultima = null;
+  salvar();
+  desenhar();
+  avisar("Voltou para " + ROTULOS[contato.etapa]);
+}
+
+function formatarData(timestamp) {
+  return new Date(timestamp).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ---------- tela ----------
+
+function atualizarAbas() {
+  document.querySelectorAll(".abas button").forEach((botao) => {
+    const f = botao.dataset.filtro;
+    if (f === "todos") {
+      botao.textContent = `Todos (${contatos.length})`;
+    } else {
+      const quantos = contatos.filter((c) => c.etapa === Number(f)).length;
+      botao.textContent = `${ROTULOS[f]} (${quantos})`;
+    }
+  });
+}
+
 function desenhar() {
   const busca = $("busca").value.toLowerCase();
   const tabela = $("tabela");
@@ -73,20 +194,21 @@ function desenhar() {
   let mostrados = 0;
 
   contatos.forEach((contato) => {
-    const feito = Boolean(ligados[contato.numero]);
-
-    if (filtro === "pendentes" && feito) return;
-    if (filtro === "ligados" && !feito) return;
+    if (filtro !== "todos" && String(contato.etapa) !== filtro) return;
     if (busca && !contato.nome.toLowerCase().includes(busca) && !contato.numero.includes(busca)) return;
 
     mostrados++;
 
     const linha = document.createElement("tr");
-    if (feito) linha.className = "feito";
 
     const celulaNome = document.createElement("td");
     celulaNome.className = "nome";
     celulaNome.textContent = contato.nome;
+    if (contato.ultima) {
+      const data = document.createElement("small");
+      data.textContent = "Última ligação: " + formatarData(contato.ultima);
+      celulaNome.appendChild(data);
+    }
 
     const celulaNumero = document.createElement("td");
     celulaNumero.className = "numero";
@@ -97,29 +219,45 @@ function desenhar() {
       setTimeout(() => celulaNumero.classList.remove("copiado"), 500);
     });
 
-    const celulaBotao = document.createElement("td");
-    celulaBotao.className = "botao-celula";
-    const botao = document.createElement("button");
-    botao.className = "btn";
-    botao.textContent = feito ? "✓ Liguei" : "Liguei";
-    botao.addEventListener("click", () => {
-      if (ligados[contato.numero]) {
-        delete ligados[contato.numero];
-      } else {
-        ligados[contato.numero] = true;
-      }
-      salvar();
-      desenhar();
-    });
-    celulaBotao.appendChild(botao);
+    const celulaBotoes = document.createElement("td");
+    celulaBotoes.className = "botoes";
 
-    linha.append(celulaNome, celulaNumero, celulaBotao);
+    if (contato.etapa < ULTIMA_ETAPA) {
+      const avancar = document.createElement("button");
+      avancar.className = "btn";
+      avancar.textContent = `Liguei (${contato.etapa + 1}ª)`;
+      avancar.addEventListener("click", () => registrarLigacao(contato));
+      celulaBotoes.appendChild(avancar);
+    } else {
+      const fim = document.createElement("span");
+      fim.className = "concluido";
+      fim.textContent = "4 ligações feitas";
+      celulaBotoes.appendChild(fim);
+    }
+
+    if (contato.etapa > 0) {
+      const voltar = document.createElement("button");
+      voltar.className = "btn";
+      voltar.textContent = "↩";
+      voltar.title = "Voltar uma etapa";
+      voltar.addEventListener("click", () => voltarEtapa(contato));
+      celulaBotoes.appendChild(voltar);
+    }
+
+    linha.append(celulaNome, celulaNumero, celulaBotoes);
     tabela.appendChild(linha);
   });
 
-  const total = contatos.length;
-  const jaLigados = contatos.filter((c) => ligados[c.numero]).length;
-  $("contador").textContent = `${jaLigados}/${total} ligados · ${mostrados} na lista`;
+  atualizarAbas();
+  $("contador").textContent = `${contatos.length} contatos · ${mostrados} nesta aba`;
+}
+
+function mudarFiltro(novoFiltro) {
+  filtro = novoFiltro;
+  document.querySelectorAll(".abas button").forEach((botao) => {
+    botao.classList.toggle("ativa", botao.dataset.filtro === filtro);
+  });
+  desenhar();
 }
 
 // ---------- leitura do texto colado ----------
@@ -180,7 +318,7 @@ function lerLista(texto) {
     if (numero.length <= 11) numero = "55" + numero;
 
     const nomeLimpo = nome.replace(/^[\s,:;\-–|"']+|[\s,:;\-–|"']+$/g, "");
-    validos.push({ nome: nomeLimpo || "(sem nome)", numero });
+    validos.push({ nome: nomeLimpo || "(sem nome)", numero, etapa: 0, ultima: null });
   });
 
   return { validos, invalidos };
@@ -207,7 +345,7 @@ function adicionarContatos() {
   contatos = novos.concat(contatos);
   salvar();
   $("areaColar").value = "";
-  mudarFiltro("pendentes");
+  mudarFiltro("0");
 
   let mensagem = `${novos.length} adicionados`;
   if (repetidos) mensagem += ` · ${repetidos} repetidos`;
@@ -215,12 +353,43 @@ function adicionarContatos() {
   avisar(mensagem, 3000);
 }
 
-function mudarFiltro(novoFiltro) {
-  filtro = novoFiltro;
-  document.querySelectorAll(".abas button").forEach((botao) => {
-    botao.classList.toggle("ativa", botao.dataset.filtro === filtro);
-  });
-  desenhar();
+// ---------- backup ----------
+
+function exportar() {
+  const dados = JSON.stringify({ perfil: perfilAtual, contatos }, null, 2);
+  const arquivo = new Blob([dados], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(arquivo);
+  link.download = `contatos-${perfilAtual}.json`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function normalizar(item) {
+  const etapa = Number(item.etapa);
+  return {
+    nome: String(item.nome || "(sem nome)"),
+    numero: soDigitos(String(item.numero || "")),
+    etapa: etapa >= 0 && etapa <= ULTIMA_ETAPA ? etapa : 0,
+    ultima: item.ultima || null,
+  };
+}
+
+async function importar(arquivo) {
+  try {
+    const dados = JSON.parse(await arquivo.text());
+    const lista = (Array.isArray(dados) ? dados : dados.contatos).map(normalizar);
+    const validos = lista.filter((c) => c.numero.length >= 10);
+
+    if (!confirm(`Substituir a lista do perfil "${perfilAtual}" por ${validos.length} contatos do arquivo?`)) return;
+
+    contatos = validos;
+    salvar();
+    mudarFiltro("0");
+    avisar("Backup importado");
+  } catch (erro) {
+    avisar("Arquivo inválido", 3000);
+  }
 }
 
 // ---------- eventos ----------
@@ -231,6 +400,10 @@ document.querySelectorAll(".abas button").forEach((botao) => {
 
 $("busca").addEventListener("input", desenhar);
 $("prefixo").addEventListener("input", desenhar);
+
+$("selPerfil").addEventListener("change", () => abrirPerfil($("selPerfil").value));
+$("btnNovoPerfil").addEventListener("click", novoPerfil);
+$("btnExcluirPerfil").addEventListener("click", excluirPerfil);
 
 $("btnColar").addEventListener("click", () => {
   const painel = $("painelColar");
@@ -250,12 +423,19 @@ $("btnOrdenar").addEventListener("click", () => {
   avisar("Ordenado de A a Z");
 });
 
+$("btnExportar").addEventListener("click", exportar);
+$("btnImportar").addEventListener("click", () => $("arquivoImportar").click());
+$("arquivoImportar").addEventListener("change", (evento) => {
+  const arquivo = evento.target.files[0];
+  if (arquivo) importar(arquivo);
+  evento.target.value = "";
+});
+
 $("btnApagar").addEventListener("click", () => {
-  if (!confirm("Apagar toda a lista?")) return;
+  if (!confirm("Apagar toda a lista deste perfil?")) return;
   contatos = [];
-  ligados = {};
   salvar();
   desenhar();
 });
 
-desenhar();
+iniciarPerfis();
