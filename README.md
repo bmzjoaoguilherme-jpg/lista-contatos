@@ -14,19 +14,14 @@ Abra o `index.html` no navegador. Não precisa instalar nada.
 Formatos aceitos:
 
 ```
-Maria	11 98765-4321
-Maria 11 98765-4321
-(11) 98765-4321 Maria
-11987654321
+Maria	11 98111-1111
+Maria 11 98111-1111
+(11) 981111-1111 Maria
+11981111111
 ```
 
 ## Dados
 
 A lista fica salva só no navegador (localStorage). Nada é enviado para servidor.
-Por isso não coloque contatos reais dentro do repositório.
 
-## Publicar no GitHub Pages
 
-1. Suba os arquivos para um repositório.
-2. Em Settings > Pages, escolha a branch `main` e a pasta `/ (root)`.
-3. O site fica disponível em `https://SEU-USUARIO.github.io/NOME-DO-REPO/`.
